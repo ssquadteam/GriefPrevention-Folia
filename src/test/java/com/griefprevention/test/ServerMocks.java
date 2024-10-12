@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Field;
 import java.util.logging.Logger;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -18,7 +19,6 @@ import static org.mockito.Mockito.when;
 
 public final class ServerMocks
 {
-
     public static @NotNull Server newServer()
     {
         Server mock = mock(Server.class);
@@ -33,7 +33,7 @@ public final class ServerMocks
         // That means that the registry class must be set up to be mocked before accessing it or any dependent class.
         // If that is not done, all the constants in the dependent class will be null.
         doAnswer(invocationGetRegistry -> {
-            Registry<?> registry = mock();
+            Registry<?> registry = mock(Registry.class);
             doAnswer(invocationGetEntry -> {
                 NamespacedKey key = invocationGetEntry.getArgument(0);
                 // Set registries to always return a new value. This allows static constants to be populated,
@@ -42,7 +42,7 @@ public final class ServerMocks
                 Keyed keyed = mock(arg);
                 doReturn(key).when(keyed).getKey();
                 return keyed;
-            }).when(registry).get(notNull());
+            }).when(registry).get(any(NamespacedKey.class));
             return registry;
         }).when(mock).getRegistry(notNull());
 
@@ -64,5 +64,4 @@ public final class ServerMocks
     }
 
     private ServerMocks() {}
-
 }

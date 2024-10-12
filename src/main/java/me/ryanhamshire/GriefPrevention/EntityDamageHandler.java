@@ -778,7 +778,7 @@ public class EntityDamageHandler implements Listener
             if (projectile.getType() == EntityType.TRIDENT)
             {
                 // Instead of removing a trident, teleport it to the entity's foot location and remove velocity.
-                projectile.teleport(entity);
+                projectile.teleportAsync(entity.getLocation());
                 projectile.setVelocity(new Vector());
             }
             // Otherwise remove the projectile.

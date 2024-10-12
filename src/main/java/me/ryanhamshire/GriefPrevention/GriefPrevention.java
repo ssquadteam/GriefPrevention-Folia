@@ -23,6 +23,8 @@ import com.google.common.cache.CacheBuilder;
 import com.griefprevention.commands.ClaimCommand;
 import com.griefprevention.metrics.MetricsHandler;
 import com.griefprevention.protection.ProtectionHelper;
+import com.tcoded.folialib.FoliaLib;
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import me.ryanhamshire.GriefPrevention.DataStore.NoTransferException;
 import me.ryanhamshire.GriefPrevention.events.SaveTrappedPlayerEvent;
 import me.ryanhamshire.GriefPrevention.events.TrustChangedEvent;
@@ -50,10 +52,10 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.profile.PlayerProfile;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -86,6 +88,10 @@ public class GriefPrevention extends JavaPlugin
     //for convenience, a reference to the instance of this plugin
     public static GriefPrevention instance;
 
+    // for convenience, a reference to the scheduler wrapper!
+
+    public static FoliaLib scheduler;
+
     //for logging to the console and log file
     private static Logger log;
 
@@ -108,6 +114,9 @@ public class GriefPrevention extends JavaPlugin
 
     //claim mode for each world
     public ConcurrentHashMap<World, ClaimsMode> config_claims_worldModes;
+
+    private static final String BLOCKS_ACCRUED_PERMISSION_NODE = "griefprevention.accrued.";
+
     private boolean config_creativeWorldsExist;                     //note on whether there are any creative mode worlds, to save cpu cycles on a common hash lookup
 
     public boolean config_claims_preventGlobalMonsterEggs; //whether monster eggs can be placed regardless of trust.
@@ -273,6 +282,8 @@ public class GriefPrevention extends JavaPlugin
     public void onEnable()
     {
         instance = this;
+        scheduler = new FoliaLib(this);
+
         log = instance.getLogger();
 
         this.loadConfig();
@@ -344,12 +355,12 @@ public class GriefPrevention extends JavaPlugin
         if (this.config_claims_blocksAccruedPerHour_default > 0)
         {
             DeliverClaimBlocksTask task = new DeliverClaimBlocksTask(null, this);
-            this.getServer().getScheduler().scheduleSyncRepeatingTask(this, task, 20L * 60 * 10, 20L * 60 * 10);
+            scheduler.getImpl().runTimer(task, 10L, 10L, TimeUnit.MINUTES);
         }
 
         //start recurring cleanup scan for unused claims belonging to inactive players
         FindUnusedClaimsTask task2 = new FindUnusedClaimsTask();
-        this.getServer().getScheduler().scheduleSyncRepeatingTask(this, task2, 20L * 60, 20L * config_advanced_claim_expiration_check_rate);
+        scheduler.getImpl().runTimer(task2, 60L, config_advanced_claim_expiration_check_rate, TimeUnit.SECONDS);
 
         //register for events
         PluginManager pluginManager = this.getServer().getPluginManager();
@@ -358,7 +369,7 @@ public class GriefPrevention extends JavaPlugin
         playerEventHandler = new PlayerEventHandler(this.dataStore, this);
         pluginManager.registerEvents(playerEventHandler, this);
         // Load monitored commands on a 1-tick delay to allow plugins to enable and Bukkit to load commands.yml.
-        getServer().getScheduler().runTaskLater(this, playerEventHandler::reload, 1L);
+        scheduler.getImpl().runLater(playerEventHandler::reload, 50L, TimeUnit.MILLISECONDS);
 
         //block events
         BlockEventHandler blockEventHandler = new BlockEventHandler(this.dataStore);
@@ -388,13 +399,17 @@ public class GriefPrevention extends JavaPlugin
 
         setUpCommands();
 
-        AddLogEntry("Boot finished.");
-
-        try
-        {
-            new MetricsHandler(this);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new GriefPreventionExpansion(this).register();
+            getLogger().info("Successfully registered placeholder expansion for GriefPrevention!");
         }
-        catch (Throwable ignored) {}
+
+//        try
+//        {
+//            new MetricsHandler(this);
+//        }
+//        catch (Throwable ignored) {}
+        AddLogEntry("Boot finished.");
     }
 
     private void loadConfig()
@@ -2085,7 +2100,7 @@ public class GriefPrevention extends JavaPlugin
 
             //create a task to rescue this player in a little while
             PlayerRescueTask task = new PlayerRescueTask(player, player.getLocation(), event.getDestination());
-            this.getServer().getScheduler().scheduleSyncDelayedTask(this, task, 200L);  //20L ~ 1 second
+            scheduler.getImpl().runAtEntityLater(player, task, 10L, TimeUnit.SECONDS);
 
             return true;
         }
@@ -2761,7 +2776,7 @@ public class GriefPrevention extends JavaPlugin
 
             //start a task to re-check this player's inventory every minute until his immunity is gone
             PvPImmunityValidationTask task = new PvPImmunityValidationTask(player);
-            this.getServer().getScheduler().scheduleSyncDelayedTask(this, task, 1200L);
+            scheduler.getImpl().runAtEntityLater(player, task, 1L, TimeUnit.MINUTES);
         }
     }
 
@@ -2810,7 +2825,7 @@ public class GriefPrevention extends JavaPlugin
                 GuaranteeChunkLoaded(candidateLocation);
                 Block highestBlock = candidateLocation.getWorld().getHighestBlockAt(candidateLocation.getBlockX(), candidateLocation.getBlockZ());
                 Location destination = new Location(highestBlock.getWorld(), highestBlock.getX(), highestBlock.getY() + 2, highestBlock.getZ());
-                player.teleport(destination);
+                player.teleportAsync(destination);
                 return destination;
             }
         }
@@ -2862,7 +2877,7 @@ public class GriefPrevention extends JavaPlugin
         //Only schedule if there should be a delay. Otherwise, send the message right now, else the message will appear out of order.
         if (delayInTicks > 0)
         {
-            GriefPrevention.instance.getServer().getScheduler().runTaskLater(GriefPrevention.instance, task, delayInTicks);
+            scheduler.getImpl().runAtEntityLater(player, task, delayInTicks * 50L, TimeUnit.MILLISECONDS);
         }
         else
         {
@@ -3137,17 +3152,28 @@ public class GriefPrevention extends JavaPlugin
 	*/
 
     //Track scheduled "rescues" so we can cancel them if the player happens to teleport elsewhere so we can cancel it.
-    ConcurrentHashMap<UUID, BukkitTask> portalReturnTaskMap = new ConcurrentHashMap<>();
+    ConcurrentHashMap<UUID, WrappedTask> portalReturnTaskMap = new ConcurrentHashMap<>();
 
     public void startRescueTask(Player player, Location location)
     {
         //Schedule task to reset player's portal cooldown after 30 seconds (Maximum timeout time for client, in case their network is slow and taking forever to load chunks)
-        BukkitTask task = new CheckForPortalTrapTask(player, this, location).runTaskLater(GriefPrevention.instance, 600L);
+        WrappedTask task = scheduler.getImpl().runAtLocationLater(location, new CheckForPortalTrapTask(player, this, location), 30L, TimeUnit.SECONDS);
 
         //Cancel existing rescue task
         if (portalReturnTaskMap.containsKey(player.getUniqueId()))
             portalReturnTaskMap.put(player.getUniqueId(), task).cancel();
         else
             portalReturnTaskMap.put(player.getUniqueId(), task);
+    }
+
+    public int getBlocksAccruedPerHour(@NotNull Player player) {
+        return player.getEffectivePermissions().stream()
+                .filter(PermissionAttachmentInfo::getValue)
+                .map(PermissionAttachmentInfo::getPermission)
+                .filter(node -> node.startsWith(BLOCKS_ACCRUED_PERMISSION_NODE))
+                .map(node -> node.replace(BLOCKS_ACCRUED_PERMISSION_NODE, ""))
+                .mapToInt(Integer::parseInt)
+                .max()
+                .orElse(config_claims_blocksAccruedPerHour_default);
     }
 }

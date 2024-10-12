@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -97,13 +98,13 @@ public abstract class BoundaryVisualization
      */
     protected void scheduleRevert(@NotNull Player player, @NotNull PlayerData playerData)
     {
-        GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(
-                GriefPrevention.instance,
+        GriefPrevention.scheduler.getImpl().runAtEntityLater(
+                player,
                 () -> {
                     // Only revert if this is the active visualization.
                     if (playerData.getVisibleBoundaries() == this) playerData.setVisibleBoundaries(null);
                 },
-                20L * 60);
+                60L, TimeUnit.SECONDS);
     }
 
     /**
@@ -277,10 +278,10 @@ public abstract class BoundaryVisualization
         // If they are online and in the same world as the visualization, display the visualization next tick.
         if (visualization.canVisualize(player))
         {
-            GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(
-                    GriefPrevention.instance,
+            GriefPrevention.scheduler.getImpl().runAtEntityLater(
+                    player,
                     new DelayedVisualizationTask(visualization, playerData, event),
-                    1L);
+                    50L, TimeUnit.MILLISECONDS);
         }
     }
 

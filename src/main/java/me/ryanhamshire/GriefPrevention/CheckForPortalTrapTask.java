@@ -21,12 +21,11 @@ package me.ryanhamshire.GriefPrevention;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.scheduler.BukkitRunnable;
 
 //players can be "trapped" in a portal frame if they don't have permission to break
 //solid blocks blocking them from exiting the frame
 //if that happens, we detect the problem and send them back through the portal.
-class CheckForPortalTrapTask extends BukkitRunnable
+class CheckForPortalTrapTask implements Runnable
 {
     GriefPrevention instance;
     //player who recently teleported via nether portal
@@ -49,7 +48,7 @@ class CheckForPortalTrapTask extends BukkitRunnable
         if (player.isOnline() && player.getPortalCooldown() >= 10 && player.hasMetadata("GP_PORTALRESCUE"))
         {
             GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + player.getLocation().toString() + " to " + returnLocation.toString(), CustomLogEntryTypes.Debug);
-            player.teleport(returnLocation);
+            player.teleportAsync(returnLocation);
             player.removeMetadata("GP_PORTALRESCUE", instance);
         }
         instance.portalReturnTaskMap.remove(player.getUniqueId());

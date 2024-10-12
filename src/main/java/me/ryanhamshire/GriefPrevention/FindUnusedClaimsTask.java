@@ -54,7 +54,7 @@ class FindUnusedClaimsTask implements Runnable
             return;
         }
 
-        GriefPrevention.instance.getServer().getScheduler().runTaskAsynchronously(GriefPrevention.instance, new CleanupUnusedClaimPreTask(claimOwnerIterator.next()));
+        GriefPrevention.scheduler.getImpl().runAsync(new CleanupUnusedClaimPreTask(claimOwnerIterator.next()));
     }
 
     public void refreshUUIDs()

@@ -1,9 +1,12 @@
-name: GriefPrevention
+commit-hash: ${git.commit.id.describe-short}
+git-repo: ssquadteam/GriefPrevention-Folia
+name: GriefPrevention-Folia
 main: me.ryanhamshire.GriefPrevention.GriefPrevention
 softdepend: [Multiverse-Core, My_Worlds, MystCraft, Transporter, RoyalCommands, MultiWorld, Denizen, CommandHelper]
 dev-url: https://dev.bukkit.org/projects/grief-prevention
-version: '${git.commit.id.describe}'
+version: '17.0.0-SNAPSHOT'
 api-version: '1.20'
+folia-supported: true
 commands:
     abandonclaim:
       description: Deletes a claim.
@@ -41,7 +44,7 @@ commands:
     permissiontrust:
       description: Grants a player permission to grant his level of permission to others.
       usage: /<command> <player>.  Permits a player to share his permission level with others.
-      aliases: pt
+      aliases: [pt, managertrust, mt]
       permission: griefprevention.claims
     subdivideclaims:
       description: Switches the shovel tool to subdivision mode, used to subdivide your claims.

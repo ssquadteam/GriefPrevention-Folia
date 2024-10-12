@@ -19,9 +19,11 @@
 package me.ryanhamshire.GriefPrevention;
 
 import me.ryanhamshire.GriefPrevention.events.AccrueClaimBlocksEvent;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 //FEATURE: give players claim blocks for playing, as long as they're not away from their computer
 
@@ -48,11 +50,11 @@ class DeliverClaimBlocksTask implements Runnable
             @SuppressWarnings("unchecked")
             Collection<Player> players = (Collection<Player>) GriefPrevention.instance.getServer().getOnlinePlayers();
 
-            long i = 0;
+            long i = 1;
             for (Player onlinePlayer : players)
             {
                 DeliverClaimBlocksTask newTask = new DeliverClaimBlocksTask(onlinePlayer, instance);
-                instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, newTask, i++);
+                GriefPrevention.scheduler.getImpl().runAtEntityLater(onlinePlayer, newTask, 50L * i++, TimeUnit.MILLISECONDS);
             }
 
             return; //tasks started for each player
@@ -73,8 +75,12 @@ class DeliverClaimBlocksTask implements Runnable
         boolean isIdle = false;
         try
         {
-            isIdle = player.isInsideVehicle() || player.getLocation().getBlock().isLiquid() ||
-                    !(playerData.lastAfkCheckLocation == null || playerData.lastAfkCheckLocation.distanceSquared(player.getLocation()) > idleThresholdSquared);
+            Location loc = player.getLocation();
+            boolean inLoadedChunk = player.getWorld().isChunkLoaded(player.getLocation().getBlockX() >> 4,
+                    player.getLocation().getBlockZ() >> 4);
+
+            isIdle = player.isInsideVehicle() || (inLoadedChunk && loc.getBlock().isLiquid()) ||
+                    !(playerData.lastAfkCheckLocation == null || playerData.lastAfkCheckLocation.distanceSquared(loc) > idleThresholdSquared);
         }
         catch (IllegalArgumentException ignore) //can't measure distance when to/from are different worlds
         {
@@ -86,14 +92,14 @@ class DeliverClaimBlocksTask implements Runnable
         try
         {
             //determine how fast blocks accrue for this player //RoboMWM: addons determine this instead
-            int accrualRate = instance.config_claims_blocksAccruedPerHour_default;
+            int accrualRate = instance.getBlocksAccruedPerHour(player);
 
             //determine idle accrual rate when idle
             if (isIdle)
             {
                 if (instance.config_claims_accruedIdlePercent <= 0)
                 {
-                    GriefPrevention.AddLogEntry(player.getName() + " wasn't active enough to accrue claim blocks this round.", CustomLogEntryTypes.Debug, true);
+                    GriefPrevention.AddLogEntry(player.getName() + " wasn't active enough to accrue claim blocks this round.", CustomLogEntryTypes.Debug, false);
                     return; //idle accrual percentage is disabled
                 }
 
@@ -105,7 +111,7 @@ class DeliverClaimBlocksTask implements Runnable
             instance.getServer().getPluginManager().callEvent(event);
             if (event.isCancelled())
             {
-                GriefPrevention.AddLogEntry(player.getName() + " claim block delivery was canceled by another plugin.", CustomLogEntryTypes.Debug, true);
+                GriefPrevention.AddLogEntry(player.getName() + " claim block delivery was canceled by another plugin.", CustomLogEntryTypes.Debug, false);
                 return; //event was cancelled
             }
 
@@ -113,7 +119,7 @@ class DeliverClaimBlocksTask implements Runnable
             accrualRate = event.getBlocksToAccrue();
             if (accrualRate < 0) accrualRate = 0;
             playerData.accrueBlocks(accrualRate);
-            GriefPrevention.AddLogEntry("Delivering " + event.getBlocksToAccrue() + " blocks to " + player.getName(), CustomLogEntryTypes.Debug, true);
+            GriefPrevention.AddLogEntry("Delivering " + event.getBlocksToAccrue() + " blocks to " + player.getName(), CustomLogEntryTypes.Debug, false);
 
             //intentionally NOT saving data here to reduce overall secondary storage access frequency
             //many other operations will cause this player's data to save, including his eventual logout

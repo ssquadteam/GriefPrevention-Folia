@@ -66,7 +66,7 @@ class PlayerRescueTask implements Runnable
         }
         else
         {
-            player.teleport(this.destination);
+            player.teleportAsync(this.destination);
         }
 
         //log entry, in case admins want to investigate the "trap"

@@ -22,6 +22,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 //asynchronously loads player data without caching it in the datastore, then
 //passes those data to a claim cleanup task which might decide to delete a claim for inactivity
@@ -83,6 +84,6 @@ class CleanupUnusedClaimPreTask implements Runnable
         }
 
         //pass it back to the main server thread, where it's safe to delete a claim if needed
-        Bukkit.getScheduler().scheduleSyncDelayedTask(GriefPrevention.instance, new CleanupUnusedClaimTask(claimToExpire, ownerData, ownerInfo), 1L);
+        GriefPrevention.scheduler.getImpl().runLater(new CleanupUnusedClaimTask(claimToExpire, ownerData, ownerInfo), 50L, TimeUnit.MILLISECONDS);
     }
 }

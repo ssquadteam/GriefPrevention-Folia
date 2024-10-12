@@ -20,6 +20,8 @@ package me.ryanhamshire.GriefPrevention;
 
 import org.bukkit.entity.Player;
 
+import java.util.concurrent.TimeUnit;
+
 //sends a message to a player
 //used to send delayed messages, for example help text triggered by a player's chat
 class PvPImmunityValidationTask implements Runnable
@@ -49,7 +51,7 @@ class PvPImmunityValidationTask implements Runnable
         else
         {
             //otherwise check again in one minute
-            GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(GriefPrevention.instance, this, 1200L);
+            GriefPrevention.scheduler.getImpl().runLater(this, 1L, TimeUnit.MINUTES);
         }
     }
 }
