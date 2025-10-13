@@ -377,7 +377,10 @@ public class PlayerData
     public void setVisibleBoundaries(@Nullable BoundaryVisualization visibleBoundaries)
     {
         if (this.visibleBoundaries != null) {
-            this.visibleBoundaries.revert(Bukkit.getPlayer(playerID));
+            var player = Bukkit.getPlayer(playerID);
+            if (player != null) {
+                GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> this.visibleBoundaries.revert(player));
+            }
         }
 
         this.visibleBoundaries = visibleBoundaries;
