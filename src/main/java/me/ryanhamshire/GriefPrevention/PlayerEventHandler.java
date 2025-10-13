@@ -1323,7 +1323,7 @@ class PlayerEventHandler implements Listener
             if (instance.claimsEnabledForWorld(player.getWorld()))
             {
                 EquipShovelProcessingTask task = new EquipShovelProcessingTask(player);
-                instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, task, 15L);  //15L is approx. 3/4 of a second
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> task.run(), 15L);  //15L is approx. 3/4 of a second
             }
         }
     }
