@@ -42,7 +42,7 @@ public class BlockEventHandlerTest
             doReturn(Set.of()).when(tag).getValues();
             return tag;
         }).when(server).getTag(notNull(), notNull(), notNull());
-        Bukkit.setServer(server);
+        ServerMocks.setBukkitServer(server);
 
         // Touch class to load material list.
         //noinspection ResultOfMethodCallIgnored

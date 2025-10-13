@@ -11,6 +11,7 @@ import java.lang.reflect.Field;
 import java.util.logging.Logger;
 
 import static org.mockito.ArgumentMatchers.notNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -42,7 +43,7 @@ public final class ServerMocks
                 Keyed keyed = mock(arg);
                 doReturn(key).when(keyed).getKey();
                 return keyed;
-            }).when(registry).get(notNull());
+            }).when(registry).get(any(NamespacedKey.class));
             return registry;
         }).when(mock).getRegistry(notNull());
 
@@ -56,6 +57,20 @@ public final class ServerMocks
             Field server = Bukkit.class.getDeclaredField("server");
             server.setAccessible(true);
             server.set(null, null);
+        }
+        catch (NoSuchFieldException | IllegalArgumentException | IllegalAccessException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void setBukkitServer(@NotNull Server serverInstance)
+    {
+        try
+        {
+            Field server = Bukkit.class.getDeclaredField("server");
+            server.setAccessible(true);
+            server.set(null, serverInstance);
         }
         catch (NoSuchFieldException | IllegalArgumentException | IllegalAccessException e)
         {

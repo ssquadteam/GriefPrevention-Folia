@@ -309,7 +309,7 @@ class MonitoredCommandsTest
     static void beforeAll()
     {
         server = ServerMocks.newServer();
-        Bukkit.setServer(server);
+        ServerMocks.setBukkitServer(server);
 
         // Set up dummy GP instance with dummy logger to prevent NPE when MonitoredCommands class is loaded.
         GriefPrevention.instance = mock(GriefPrevention.class);
