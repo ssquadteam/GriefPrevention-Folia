@@ -97,13 +97,10 @@ public abstract class BoundaryVisualization
      */
     protected void scheduleRevert(@NotNull Player player, @NotNull PlayerData playerData)
     {
-        GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(
-                GriefPrevention.instance,
-                () -> {
-                    // Only revert if this is the active visualization.
-                    if (playerData.getVisibleBoundaries() == this) playerData.setVisibleBoundaries(null);
-                },
-                20L * 60);
+        GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> {
+            // Only revert if this is the active visualization.
+            if (playerData.getVisibleBoundaries() == this) playerData.setVisibleBoundaries(null);
+        }, 20L * 60);
     }
 
     /**

@@ -365,7 +365,7 @@ this.foliaLib.getScheduler().runTimer(tt -> task2.run(), 20L * 60, 20L * config_
         playerEventHandler = new PlayerEventHandler(this.dataStore, this);
         pluginManager.registerEvents(playerEventHandler, this);
         // Load monitored commands on a 1-tick delay to allow plugins to enable and Bukkit to load commands.yml.
-        getServer().getScheduler().runTaskLater(this, playerEventHandler::reload, 1L);
+        this.foliaLib.getScheduler().runLater(t -> playerEventHandler.reload(), 1L);
 
         //block events
         BlockEventHandler blockEventHandler = new BlockEventHandler(this.dataStore);
@@ -2081,7 +2081,7 @@ this.foliaLib.getScheduler().runTimer(tt -> task2.run(), 20L * 60, 20L * config_
 
             //create a task to rescue this player in a little while
             PlayerRescueTask task = new PlayerRescueTask(player, player.getLocation(), event.getDestination());
-            this.getServer().getScheduler().scheduleSyncDelayedTask(this, task, 200L);  //20L ~ 1 second
+            this.foliaLib.getScheduler().runLater(t -> task.run(), 200L);  //20L ~ 1 second
 
             return true;
         }
@@ -2735,7 +2735,7 @@ this.foliaLib.getScheduler().runTimer(tt -> task2.run(), 20L * 60, 20L * config_
 
             //start a task to re-check this player's inventory every minute until his immunity is gone
             PvPImmunityValidationTask task = new PvPImmunityValidationTask(player);
-            this.getServer().getScheduler().scheduleSyncDelayedTask(this, task, 1200L);
+            this.foliaLib.getScheduler().runLater(t -> task.run(), 1200L);
         }
     }
 
@@ -2843,7 +2843,7 @@ GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, tt -> 
                     task.run();
                 }
             };
-            GriefPrevention.instance.getServer().getScheduler().runTaskLater(GriefPrevention.instance, wrapper, delayInTicks);
+            GriefPrevention.instance.foliaLib.getScheduler().runLater(t -> wrapper.run(), delayInTicks);
         }
         else
         {

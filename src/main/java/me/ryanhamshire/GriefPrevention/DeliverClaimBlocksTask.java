@@ -50,7 +50,7 @@ class DeliverClaimBlocksTask implements Runnable
             for (Player onlinePlayer : players)
             {
                 DeliverClaimBlocksTask newTask = new DeliverClaimBlocksTask(onlinePlayer, instance);
-                instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, newTask, i++);
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> newTask.run(), i++);
             }
 
             return; //tasks started for each player

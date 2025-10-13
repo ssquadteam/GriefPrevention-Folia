@@ -389,7 +389,7 @@ class PlayerEventHandler implements Listener
 
                 //kick and ban
                 PlayerKickBanTask task = new PlayerKickBanTask(player, instance.config_spam_banMessage, "GriefPrevention Anti-Spam", true);
-                instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, task, 1L);
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> task.run(), 1L);
             }
             else
             {
@@ -398,7 +398,7 @@ class PlayerEventHandler implements Listener
 
                 //just kick
                 PlayerKickBanTask task = new PlayerKickBanTask(player, "", "GriefPrevention Anti-Spam", false);
-                instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, task, 1L);
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> task.run(), 1L);
             }
         }
         else if (result.shouldWarnChatter)
@@ -645,7 +645,7 @@ class PlayerEventHandler implements Listener
             if (instance.config_claims_worldModes.get(player.getWorld()) == ClaimsMode.Survival && !player.hasPermission("griefprevention.adminclaims") && this.dataStore.claims.size() > 10)
             {
                 WelcomeTask task = new WelcomeTask(player);
-                Bukkit.getScheduler().scheduleSyncDelayedTask(instance, task, instance.config_claims_manualDeliveryDelaySeconds * 20L);
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> task.run(), instance.config_claims_manualDeliveryDelaySeconds * 20L);
             }
         }
 
@@ -710,7 +710,7 @@ class PlayerEventHandler implements Listener
 
                         //ban player
                         PlayerKickBanTask task = new PlayerKickBanTask(player, "", "GriefPrevention Smart Ban - Shared Login:" + info.bannedAccountName, true);
-                        instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, task, 10L);
+                        GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> task.run(), 10L);
 
                         //silence join message
                         event.setJoinMessage("");
@@ -750,7 +750,7 @@ class PlayerEventHandler implements Listener
                 {
                     //kick player
                     PlayerKickBanTask task = new PlayerKickBanTask(player, instance.dataStore.getMessage(Messages.TooMuchIpOverlap), "GriefPrevention IP-sharing limit.", false);
-                    instance.getServer().getScheduler().scheduleSyncDelayedTask(instance, task, 100L);
+                    GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> task.run(), 100L);
 
                     //silence join message
                     event.setJoinMessage(null);
@@ -767,21 +767,16 @@ class PlayerEventHandler implements Listener
         {
             //If so, let him know and rescue him in 10 seconds. If he is in fact not trapped, hopefully chunks will have loaded by this time so he can walk out.
             GriefPrevention.sendMessage(player, TextMode.Info, Messages.NetherPortalTrapDetectionMessage, 20L);
-            new BukkitRunnable()
-            {
-                @Override
-                public void run()
-                {
-GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
-                        if (player.getPortalCooldown() > 8 && player.hasMetadata("GP_PORTALRESCUE"))
-                        {
-                            GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + GriefPrevention.getfriendlyLocationString(player.getLocation()) + " to " + GriefPrevention.getfriendlyLocationString((Location) player.getMetadata("GP_PORTALRESCUE").get(0).value()), CustomLogEntryTypes.Debug);
-                            GriefPrevention.instance.getFoliaLib().getScheduler().teleportAsync(player, (Location) player.getMetadata("GP_PORTALRESCUE").get(0).value(), null);
-                            player.removeMetadata("GP_PORTALRESCUE", instance);
-                        }
-                    });
-                }
-            }.runTaskLater(instance, 200L);
+            GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> {
+                GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t2 -> {
+                    if (player.getPortalCooldown() > 8 && player.hasMetadata("GP_PORTALRESCUE"))
+                    {
+                        GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + GriefPrevention.getfriendlyLocationString(player.getLocation()) + " to " + GriefPrevention.getfriendlyLocationString((Location) player.getMetadata("GP_PORTALRESCUE").get(0).value()), CustomLogEntryTypes.Debug);
+                        GriefPrevention.instance.getFoliaLib().getScheduler().teleportAsync(player, (Location) player.getMetadata("GP_PORTALRESCUE").get(0).value(), null);
+                        player.removeMetadata("GP_PORTALRESCUE", instance);
+                    }
+                });
+            }, 200L);
         }
         //Otherwise just reset cooldown, just in case they happened to logout again...
         else

@@ -48,7 +48,7 @@ GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
             else
             {
                 // otherwise check again in one minute via global scheduler (will re-enter on entity thread)
-                GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(GriefPrevention.instance, this, 1200L);
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t2 -> this.run(), 1200L);
             }
         });
     }

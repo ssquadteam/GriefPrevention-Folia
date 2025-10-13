@@ -69,10 +69,9 @@ public class AutoExtendClaimTask implements Runnable
                 }
             }
         }
-
-        Bukkit.getScheduler().runTaskAsynchronously(
-                GriefPrevention.instance,
-                new AutoExtendClaimTask(claim, snapshots, world.getEnvironment(), lowestLootableTile));
+        
+        final int finalLowestLootableTile = lowestLootableTile;
+        GriefPrevention.instance.getFoliaLib().getScheduler().runAsync(t -> new AutoExtendClaimTask(claim, snapshots, world.getEnvironment(), finalLowestLootableTile).run());
     }
 
     private final Claim claim;
