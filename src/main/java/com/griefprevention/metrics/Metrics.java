@@ -5,6 +5,7 @@ package com.griefprevention.metrics;
  */
 
 import org.bukkit.Bukkit;
+import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -92,7 +93,7 @@ public class Metrics {
                         enabled,
                         this::appendPlatformData,
                         this::appendServiceData,
-                        submitDataTask -> Bukkit.getScheduler().runTask(plugin, submitDataTask),
+submitDataTask -> GriefPrevention.instance.getFoliaLib().getScheduler().runNextTick(t -> submitDataTask.run()),
                         plugin::isEnabled,
                         (message, error) -> this.plugin.getLogger().log(Level.WARNING, message, error),
                         (message) -> this.plugin.getLogger().log(Level.INFO, message),
