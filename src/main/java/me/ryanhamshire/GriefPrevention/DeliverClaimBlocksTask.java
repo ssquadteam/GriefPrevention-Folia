@@ -56,53 +56,49 @@ class DeliverClaimBlocksTask implements Runnable
             return; //tasks started for each player
         }
 
-        //deliver claim blocks to the specified player
-        if (!this.player.isOnline())
-        {
-            return; //player is not online to receive claim blocks
-        }
-
-        DataStore dataStore = instance.dataStore;
-        PlayerData playerData = dataStore.getPlayerData(player.getUniqueId());
-
-        // check if player is idle (considered idle if player's facing direction has not changed)
-        boolean isIdle = playerData.lastAfkCheckLocation != null && playerData.lastAfkCheckLocation.getDirection().equals(player.getLocation().getDirection());
-
-        //remember current location for next time
-        playerData.lastAfkCheckLocation = player.getLocation();
-
-        try
-        {
-            //determine how fast blocks accrue for this player; can be modified by addons
-            int accrualRate = instance.config_claims_blocksAccruedPerHour_default;
-
-            //fire event for addons
-            AccrueClaimBlocksEvent event = new AccrueClaimBlocksEvent(player, accrualRate, isIdle);
-            instance.getServer().getPluginManager().callEvent(event);
-            if (event.isCancelled())
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(this.player, t -> {
+            if (!this.player.isOnline())
             {
-                //event is initialized as canceled if player is idle
-                if (event.isIdle())
-                    GriefPrevention.AddLogEntry(player.getName() + " wasn't active enough to accrue claim blocks this round.", CustomLogEntryTypes.Debug, true);
-                else
-                    GriefPrevention.AddLogEntry(player.getName() + " claim block delivery was canceled by another plugin.", CustomLogEntryTypes.Debug, true);
-                return; //event was cancelled
+                return;
             }
 
-            //set actual accrual
-            accrualRate = event.getBlocksToAccrue();
-            if (accrualRate < 0) accrualRate = 0;
-            playerData.accrueBlocks(accrualRate);
-            GriefPrevention.AddLogEntry("Delivering " + event.getBlocksToAccrue() + " blocks to " + player.getName(), CustomLogEntryTypes.Debug, true);
+            DataStore dataStore = instance.dataStore;
+            PlayerData playerData = dataStore.getPlayerData(player.getUniqueId());
 
-            //intentionally NOT saving data here to reduce overall secondary storage access frequency
-            //many other operations will cause this player's data to save, including his eventual logout
-            //dataStore.savePlayerData(player.getUniqueIdentifier(), playerData);
-        }
-        catch (Exception e)
-        {
-            GriefPrevention.AddLogEntry("Problem delivering claim blocks to player " + player.getName() + ":");
-            e.printStackTrace();
-        }
+
+            boolean isIdle = playerData.lastAfkCheckLocation != null && playerData.lastAfkCheckLocation.getDirection().equals(player.getLocation().getDirection());
+
+
+            playerData.lastAfkCheckLocation = player.getLocation();
+
+            try
+            {
+
+                int accrualRate = instance.config_claims_blocksAccruedPerHour_default;
+
+                AccrueClaimBlocksEvent event = new AccrueClaimBlocksEvent(player, accrualRate, isIdle);
+                instance.getServer().getPluginManager().callEvent(event);
+                if (event.isCancelled())
+                {
+                    if (event.isIdle())
+                        GriefPrevention.AddLogEntry(player.getName() + " wasn't active enough to accrue claim blocks this round.", CustomLogEntryTypes.Debug, true);
+                    else
+                        GriefPrevention.AddLogEntry(player.getName() + " claim block delivery was canceled by another plugin.", CustomLogEntryTypes.Debug, true);
+                    return;
+                }
+
+                accrualRate = event.getBlocksToAccrue();
+                if (accrualRate < 0) accrualRate = 0;
+                playerData.accrueBlocks(accrualRate);
+                GriefPrevention.AddLogEntry("Delivering " + event.getBlocksToAccrue() + " blocks to " + player.getName(), CustomLogEntryTypes.Debug, true);
+
+
+            }
+            catch (Exception e)
+            {
+                GriefPrevention.AddLogEntry("Problem delivering claim blocks to player " + player.getName() + ":");
+                e.printStackTrace();
+            }
+        });
     }
 }

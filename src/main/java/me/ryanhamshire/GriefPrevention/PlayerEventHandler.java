@@ -772,12 +772,14 @@ class PlayerEventHandler implements Listener
                 @Override
                 public void run()
                 {
-                    if (player.getPortalCooldown() > 8 && player.hasMetadata("GP_PORTALRESCUE"))
-                    {
-                        GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + GriefPrevention.getfriendlyLocationString(player.getLocation()) + " to " + GriefPrevention.getfriendlyLocationString((Location) player.getMetadata("GP_PORTALRESCUE").get(0).value()), CustomLogEntryTypes.Debug);
-                        player.teleport((Location) player.getMetadata("GP_PORTALRESCUE").get(0).value());
-                        player.removeMetadata("GP_PORTALRESCUE", instance);
-                    }
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
+                        if (player.getPortalCooldown() > 8 && player.hasMetadata("GP_PORTALRESCUE"))
+                        {
+                            GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + GriefPrevention.getfriendlyLocationString(player.getLocation()) + " to " + GriefPrevention.getfriendlyLocationString((Location) player.getMetadata("GP_PORTALRESCUE").get(0).value()), CustomLogEntryTypes.Debug);
+                            GriefPrevention.instance.getFoliaLib().getScheduler().teleportAsync(player, (Location) player.getMetadata("GP_PORTALRESCUE").get(0).value(), null);
+                            player.removeMetadata("GP_PORTALRESCUE", instance);
+                        }
+                    });
                 }
             }.runTaskLater(instance, 200L);
         }

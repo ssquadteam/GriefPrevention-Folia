@@ -50,22 +50,24 @@ class PlayerKickBanTask implements Runnable
     @Override
     public void run()
     {
-        PlayerKickBanEvent kickBanEvent = new PlayerKickBanEvent(player, reason, source, ban);
-        Bukkit.getPluginManager().callEvent(kickBanEvent);
 
-        if (kickBanEvent.isCancelled())
-        {
-            return; // cancelled by a plugin
-        }
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
+            PlayerKickBanEvent kickBanEvent = new PlayerKickBanEvent(player, reason, source, ban);
+            Bukkit.getPluginManager().callEvent(kickBanEvent);
 
-        if (this.ban)
-        {
-            //ban
-            GriefPrevention.banPlayer(this.player, this.reason, this.source);
-        }
-        else if (this.player.isOnline())
-        {
-            this.player.kickPlayer(this.reason);
-        }
+            if (kickBanEvent.isCancelled())
+            {
+                return;
+            }
+
+            if (this.ban)
+            {
+                GriefPrevention.banPlayer(this.player, this.reason, this.source);
+            }
+            else if (this.player.isOnline())
+            {
+                this.player.kickPlayer(this.reason);
+            }
+        });
     }
 }

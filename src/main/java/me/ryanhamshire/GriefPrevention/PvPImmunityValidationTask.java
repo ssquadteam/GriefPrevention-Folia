@@ -34,22 +34,22 @@ class PvPImmunityValidationTask implements Runnable
     @Override
     public void run()
     {
-        if (!player.isOnline()) return;
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
+            if (!player.isOnline()) return;
 
-        PlayerData playerData = GriefPrevention.instance.dataStore.getPlayerData(player.getUniqueId());
-        if (!playerData.pvpImmune) return;
+            PlayerData playerData = GriefPrevention.instance.dataStore.getPlayerData(player.getUniqueId());
+            if (!playerData.pvpImmune) return;
 
-        //check the player's inventory for anything
-        if (!GriefPrevention.isInventoryEmpty(player))
-        {
-            //if found, cancel invulnerability and notify
-            playerData.pvpImmune = false;
-            GriefPrevention.sendMessage(player, TextMode.Warn, Messages.PvPImmunityEnd);
-        }
-        else
-        {
-            //otherwise check again in one minute
-            GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(GriefPrevention.instance, this, 1200L);
-        }
+            if (!GriefPrevention.isInventoryEmpty(player))
+            {
+                playerData.pvpImmune = false;
+                GriefPrevention.sendMessage(player, TextMode.Warn, Messages.PvPImmunityEnd);
+            }
+            else
+            {
+                // otherwise check again in one minute via global scheduler (will re-enter on entity thread)
+                GriefPrevention.instance.getServer().getScheduler().scheduleSyncDelayedTask(GriefPrevention.instance, this, 1200L);
+            }
+        });
     }
 }

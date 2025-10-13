@@ -20,6 +20,7 @@ package me.ryanhamshire.GriefPrevention;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.tcoded.folialib.FoliaLib;
 import com.griefprevention.commands.ClaimCommand;
 import com.griefprevention.metrics.MetricsHandler;
 import com.griefprevention.protection.ProtectionHelper;
@@ -88,6 +89,12 @@ public class GriefPrevention extends JavaPlugin
 
     //for logging to the console and log file
     private static Logger log;
+
+    private FoliaLib foliaLib;
+
+    public FoliaLib getFoliaLib() {
+        return this.foliaLib;
+    }
 
     //this handles data storage, like player and region data
     public DataStore dataStore;
@@ -273,6 +280,8 @@ public class GriefPrevention extends JavaPlugin
         instance = this;
         log = instance.getLogger();
 
+        this.foliaLib = new FoliaLib(this);
+
         this.loadConfig();
 
         this.customLogger = new CustomLogger();
@@ -342,12 +351,12 @@ public class GriefPrevention extends JavaPlugin
         if (this.config_claims_blocksAccruedPerHour_default > 0)
         {
             DeliverClaimBlocksTask task = new DeliverClaimBlocksTask(null, this);
-            this.getServer().getScheduler().scheduleSyncRepeatingTask(this, task, 20L * 60 * 10, 20L * 60 * 10);
+this.foliaLib.getScheduler().runTimer(tt -> task.run(), 20L * 60 * 10, 20L * 60 * 10);
         }
 
         //start recurring cleanup scan for unused claims belonging to inactive players
         FindUnusedClaimsTask task2 = new FindUnusedClaimsTask();
-        this.getServer().getScheduler().scheduleSyncRepeatingTask(this, task2, 20L * 60, 20L * config_advanced_claim_expiration_check_rate);
+this.foliaLib.getScheduler().runTimer(tt -> task2.run(), 20L * 60, 20L * config_advanced_claim_expiration_check_rate);
 
         //register for events
         PluginManager pluginManager = this.getServer().getPluginManager();
@@ -2677,6 +2686,10 @@ public class GriefPrevention extends JavaPlugin
 
     public void onDisable()
     {
+        if (this.foliaLib != null) {
+            try { this.foliaLib.getScheduler().cancelAllTasks(); } catch (Throwable ignored) {}
+        }
+
         //save data for any online players
         @SuppressWarnings("unchecked")
         Collection<Player> players = (Collection<Player>) this.getServer().getOnlinePlayers();
@@ -2771,7 +2784,7 @@ public class GriefPrevention extends JavaPlugin
                 GuaranteeChunkLoaded(candidateLocation);
                 Block highestBlock = candidateLocation.getWorld().getHighestBlockAt(candidateLocation.getBlockX(), candidateLocation.getBlockZ());
                 Location destination = new Location(highestBlock.getWorld(), highestBlock.getX(), highestBlock.getY() + 2, highestBlock.getZ());
-                player.teleport(destination);
+                this.foliaLib.getScheduler().teleportAsync(player, destination, null);
                 return destination;
             }
         }
@@ -2823,7 +2836,14 @@ public class GriefPrevention extends JavaPlugin
         //Only schedule if there should be a delay. Otherwise, send the message right now, else the message will appear out of order.
         if (delayInTicks > 0)
         {
-            GriefPrevention.instance.getServer().getScheduler().runTaskLater(GriefPrevention.instance, task, delayInTicks);
+            Runnable wrapper = () -> {
+                if (player != null) {
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, tt -> task.run());
+                } else {
+                    task.run();
+                }
+            };
+            GriefPrevention.instance.getServer().getScheduler().runTaskLater(GriefPrevention.instance, wrapper, delayInTicks);
         }
         else
         {

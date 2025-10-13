@@ -46,12 +46,15 @@ class CheckForPortalTrapTask extends BukkitRunnable
     @Override
     public void run()
     {
-        if (player.isOnline() && player.getPortalCooldown() >= 10 && player.hasMetadata("GP_PORTALRESCUE"))
-        {
-            GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + GriefPrevention.getfriendlyLocationString(player.getLocation()) + " to " + GriefPrevention.getfriendlyLocationString(returnLocation), CustomLogEntryTypes.Debug);
-            player.teleport(returnLocation);
-            player.removeMetadata("GP_PORTALRESCUE", instance);
-        }
-        instance.portalReturnTaskMap.remove(player.getUniqueId());
+        // Execute on entity thread for Folia safety
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
+            if (player.isOnline() && player.getPortalCooldown() >= 10 && player.hasMetadata("GP_PORTALRESCUE"))
+            {
+                GriefPrevention.AddLogEntry("Rescued " + player.getName() + " from a nether portal.\nTeleported from " + GriefPrevention.getfriendlyLocationString(player.getLocation()) + " to " + GriefPrevention.getfriendlyLocationString(returnLocation), CustomLogEntryTypes.Debug);
+                GriefPrevention.instance.getFoliaLib().getScheduler().teleportAsync(player, returnLocation, null);
+                player.removeMetadata("GP_PORTALRESCUE", instance);
+            }
+            instance.portalReturnTaskMap.remove(player.getUniqueId());
+        });
     }
 }

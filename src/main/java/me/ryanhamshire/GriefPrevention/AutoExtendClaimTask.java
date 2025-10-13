@@ -109,7 +109,7 @@ public class AutoExtendClaimTask implements Runnable
         int newY = this.getLowestBuiltY();
         if (newY < this.claim.getLesserBoundaryCorner().getBlockY())
         {
-            Bukkit.getScheduler().runTask(GriefPrevention.instance, new ExecuteExtendClaimTask(claim, newY));
+            GriefPrevention.instance.getFoliaLib().getScheduler().runNextTick(t -> new ExecuteExtendClaimTask(claim, newY).run());
         }
     }
 

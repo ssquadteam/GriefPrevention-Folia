@@ -45,31 +45,24 @@ class PlayerRescueTask implements Runnable
     @Override
     public void run()
     {
-        //if he logged out, don't do anything
-        if (!player.isOnline()) return;
-
-        //he no longer has a pending /trapped slash command, so he can try to use it again now
-        PlayerData playerData = GriefPrevention.instance.dataStore.getPlayerData(player.getUniqueId());
-        playerData.pendingTrapped = false;
-
-        //if the player moved three or more blocks from where he used /trapped, admonish him and don't save him
-        if (!player.getLocation().getWorld().equals(this.location.getWorld()) || player.getLocation().distance(this.location) > 3)
-        {
-            GriefPrevention.sendMessage(player, TextMode.Err, Messages.RescueAbortedMoved);
-            return;
-        }
-
-        //otherwise find a place to teleport him
-        if (this.destination == null)
-        {
-            this.destination = GriefPrevention.instance.ejectPlayer(this.player);
-        }
-        else
-        {
-            player.teleport(this.destination);
-        }
-
-        //log entry, in case admins want to investigate the "trap"
-        GriefPrevention.AddLogEntry("Rescued trapped player " + player.getName() + " from " + GriefPrevention.getfriendlyLocationString(this.location) + " to " + GriefPrevention.getfriendlyLocationString(this.destination) + ".");
+GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
+            if (!player.isOnline()) return;
+            PlayerData playerData = GriefPrevention.instance.dataStore.getPlayerData(player.getUniqueId());
+            playerData.pendingTrapped = false;
+            if (!player.getLocation().getWorld().equals(this.location.getWorld()) || player.getLocation().distance(this.location) > 3)
+            {
+                GriefPrevention.sendMessage(player, TextMode.Err, Messages.RescueAbortedMoved);
+                return;
+            }
+            if (this.destination == null)
+            {
+                this.destination = GriefPrevention.instance.ejectPlayer(this.player);
+            }
+            else
+            {
+                GriefPrevention.instance.getFoliaLib().getScheduler().teleportAsync(player, this.destination, null);
+            }
+            GriefPrevention.AddLogEntry("Rescued trapped player " + player.getName() + " from " + GriefPrevention.getfriendlyLocationString(this.location) + " to " + GriefPrevention.getfriendlyLocationString(this.destination) + ".");
+        });
     }
 }

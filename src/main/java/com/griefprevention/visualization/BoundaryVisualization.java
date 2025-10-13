@@ -294,38 +294,40 @@ public abstract class BoundaryVisualization
         @Override
         public void run()
         {
-            try
-            {
-                visualization.apply(event.getPlayer(), playerData);
-            }
-            catch (Exception exception)
-            {
-                if (event.getProvider() == BoundaryVisualizationEvent.DEFAULT_PROVIDER)
+            GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(event.getPlayer(), t -> {
+                try
                 {
-                    // If the provider is our own, log normally.
-                    GriefPrevention.instance.getLogger().log(Level.WARNING, "Exception visualizing claim", exception);
-                    return;
+                    visualization.apply(event.getPlayer(), playerData);
                 }
+                catch (Exception exception)
+                {
+                    if (event.getProvider() == BoundaryVisualizationEvent.DEFAULT_PROVIDER)
+                    {
+                        // If the provider is our own, log normally.
+                        GriefPrevention.instance.getLogger().log(Level.WARNING, "Exception visualizing claim", exception);
+                        return;
+                    }
 
-                // Otherwise, add an extra hint that the problem is not with GP.
-                GriefPrevention.AddLogEntry(
-                        String.format(
-                                "External visualization provider %s caused %s: %s",
-                                event.getProvider().getClass().getName(),
-                                exception.getClass().getName(),
-                                exception.getCause()),
-                        CustomLogEntryTypes.Exception);
-                GriefPrevention.instance.getLogger().log(
-                        Level.WARNING,
-                        "Exception visualizing claim using external provider",
-                        exception);
+                    // Otherwise, add an extra hint that the problem is not with GP.
+                    GriefPrevention.AddLogEntry(
+                            String.format(
+                                    "External visualization provider %s caused %s: %s",
+                                    event.getProvider().getClass().getName(),
+                                    exception.getClass().getName(),
+                                    exception.getCause()),
+                            CustomLogEntryTypes.Exception);
+                    GriefPrevention.instance.getLogger().log(
+                            Level.WARNING,
+                            "Exception visualizing claim using external provider",
+                            exception);
 
-                // Fall through to default provider.
-                BoundaryVisualization fallback = BoundaryVisualizationEvent.DEFAULT_PROVIDER
-                        .create(event.getPlayer().getWorld(), event.getCenter(), event.getHeight());
-                event.getBoundaries().stream().filter(Objects::nonNull).forEach(fallback.elements::add);
-                fallback.apply(event.getPlayer(), playerData);
-            }
+                    // Fall through to default provider.
+                    BoundaryVisualization fallback = BoundaryVisualizationEvent.DEFAULT_PROVIDER
+                            .create(event.getPlayer().getWorld(), event.getCenter(), event.getHeight());
+                    event.getBoundaries().stream().filter(Objects::nonNull).forEach(fallback.elements::add);
+                    fallback.apply(event.getPlayer(), playerData);
+                }
+            });
         }
 
     }
