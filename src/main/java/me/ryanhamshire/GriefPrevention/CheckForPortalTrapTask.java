@@ -54,7 +54,7 @@ GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, t -> {
                 GriefPrevention.instance.getFoliaLib().getScheduler().teleportAsync(player, returnLocation, null);
                 player.removeMetadata("GP_PORTALRESCUE", instance);
             }
-            instance.portalReturnTaskMap.remove(player.getUniqueId());
+            instance.portalRescueSeq.remove(player.getUniqueId());
         });
     }
 }

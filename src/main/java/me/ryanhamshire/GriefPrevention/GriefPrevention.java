@@ -3117,18 +3117,23 @@ GriefPrevention.instance.getFoliaLib().getScheduler().runAtEntity(player, tt -> 
 	}
 	*/
 
-    //Track scheduled "rescues" so we can cancel them if the player happens to teleport elsewhere so we can cancel it.
-    ConcurrentHashMap<UUID, BukkitTask> portalReturnTaskMap = new ConcurrentHashMap<>();
+    // Track scheduled "rescues" using a sequence id to avoid cross-thread cancellations
+    ConcurrentHashMap<UUID, Integer> portalRescueSeq = new ConcurrentHashMap<>();
 
     public void startRescueTask(Player player, Location location)
     {
-        //Schedule task to reset player's portal cooldown after 30 seconds (Maximum timeout time for client, in case their network is slow and taking forever to load chunks)
-        BukkitTask task = new CheckForPortalTrapTask(player, this, location).runTaskLater(GriefPrevention.instance, 600L);
+        // Increment sequence for this player and schedule rescue check after 30 seconds
+        UUID pid = player.getUniqueId();
+        int seq = portalRescueSeq.getOrDefault(pid, 0) + 1;
+        portalRescueSeq.put(pid, seq);
 
-        //Cancel existing rescue task
-        if (portalReturnTaskMap.containsKey(player.getUniqueId()))
-            portalReturnTaskMap.put(player.getUniqueId(), task).cancel();
-        else
-            portalReturnTaskMap.put(player.getUniqueId(), task);
+        this.foliaLib.getScheduler().runLater(t -> {
+            // Only run if this is the latest scheduled task for the player
+            Integer current = portalRescueSeq.get(pid);
+            if (current != null && current == seq)
+            {
+                new CheckForPortalTrapTask(player, this, location).run();
+            }
+        }, 600L);
     }
 }

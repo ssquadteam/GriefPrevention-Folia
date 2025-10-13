@@ -789,10 +789,10 @@ class PlayerEventHandler implements Listener
             String joinMessage = event.getJoinMessage();
             if (joinMessage != null && !joinMessage.isEmpty())
             {
-                Integer taskID = this.heldLogoutMessages.get(player.getUniqueId());
-                if (taskID != null && Bukkit.getScheduler().isQueued(taskID))
+                if (this.heldLogoutMessages.containsKey(player.getUniqueId()))
                 {
-                    Bukkit.getScheduler().cancelTask(taskID);
+                    // Invalidate any pending logout message and send this join message privately
+                    this.heldLogoutMessages.remove(player.getUniqueId());
                     player.sendMessage(event.getJoinMessage());
                     event.setJoinMessage("");
                 }
@@ -919,9 +919,18 @@ class PlayerEventHandler implements Listener
             String quitMessage = event.getQuitMessage();
             if (quitMessage != null && !quitMessage.isEmpty())
             {
-                BroadcastMessageTask task = new BroadcastMessageTask(quitMessage);
-                int taskID = Bukkit.getScheduler().scheduleSyncDelayedTask(instance, task, 20L * instance.config_spam_logoutMessageDelaySeconds);
-                this.heldLogoutMessages.put(playerID, taskID);
+                // Sequence-based delayed broadcast to avoid thread-cancellation needs
+                int seq = this.heldLogoutMessages.getOrDefault(playerID, 0) + 1;
+                this.heldLogoutMessages.put(playerID, seq);
+                int captured = seq;
+                GriefPrevention.instance.getFoliaLib().getScheduler().runLater(t -> {
+                    Integer cur = this.heldLogoutMessages.get(playerID);
+                    if (cur != null && cur == captured)
+                    {
+                        Bukkit.getServer().broadcastMessage(quitMessage);
+                        this.heldLogoutMessages.remove(playerID);
+                    }
+                }, 20L * instance.config_spam_logoutMessageDelaySeconds);
                 event.setQuitMessage("");
             }
         }
